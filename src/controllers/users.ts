@@ -1,13 +1,63 @@
 import express, { Request, Response } from 'express'
 import asyncify from 'express-asyncify'
 import bcrypt from 'bcrypt'
-import { UserModel } from '@/models/user'
+import { google } from 'googleapis'
+
+import { User, UserModel } from '@/models/user'
 import { signIn } from '@/services/user'
 import { LoginFailedError, SignupFailError } from '@/types/errors'
 import { decodePasswd } from '@/services/keyManager'
 import { verifyUser } from '@/middlewares/user'
+import { CLIENT_URL, GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_REDIRECT_URL } from '@/config'
+import { userGoogleProfile } from '@/types'
 
 const router = asyncify(express.Router())
+
+router.get('/auth/:provider', async (req: Request, res: Response) => {
+    const provider = req.params.provider
+    if (provider === 'google') {
+        const oauth2Client = new google.auth.OAuth2(GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_REDIRECT_URL)
+        const authUrl = oauth2Client.generateAuthUrl({
+            access_type: 'offline',
+            scope: ['profile'],
+        })
+        res.json({ authUrl: authUrl })
+    }
+})
+
+router.get('/auth/callback/:provider', async (req: Request, res: Response) => {
+    const provider = req.params.provider
+    if (provider === 'google') {
+        const code = req.query.code as string
+        const oauth2Client = new google.auth.OAuth2(GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_REDIRECT_URL)
+
+        const { tokens } = await oauth2Client.getToken(code)
+        oauth2Client.setCredentials(tokens)
+        const { data }: userGoogleProfile = await oauth2Client.request({
+            url: 'https://www.googleapis.com/oauth2/v3/userinfo',
+        })
+
+        let user: User
+        if (await UserModel.checkDuplicateId(provider, data.sub)) {
+            user = await UserModel.findByOauth(provider, data.sub)
+        } else {
+            user = await UserModel.create({
+                oauthProvider: provider,
+                oauthId: data.sub,
+                nickname: data.name,
+            })
+        }
+        const token = await signIn(user.oauthProvider, user)
+        res.cookie('Authorization', `Bearer ${token}`, {
+            httpOnly: true,
+            domain: '127.0.0.1',
+            path: '/',
+            expires: new Date(Date.now() + 3600000),
+            sameSite: 'lax',
+        })
+        res.redirect(`${CLIENT_URL}/memories?nickname=${user.nickname}`)
+    }
+})
 
 router.post('/signup', async (req: Request, res: Response) => {
     // TODO: add Oauth 2.0 signup

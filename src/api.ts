@@ -5,7 +5,7 @@ import hpp from 'hpp'
 import helmet from 'helmet'
 import cors from 'cors'
 
-import { NODE_ENV, PORT } from '@/config'
+import { CLIENT_URL, NODE_ENV, PORT } from '@/config'
 import { loggerMiddleware, logger } from '@/utils/logger'
 import middlewares from '@/middlewares'
 import controllers from '@/controllers'
@@ -26,7 +26,7 @@ export default class API {
         this.app.use(helmet())
         this.app.use(
             cors({
-                origin: 'http://127.0.0.1:3000',
+                origin: `${CLIENT_URL}`,
                 credentials: true,
                 exposedHeaders: ['Authorization', 'Set-Cookie'],
             }),

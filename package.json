@@ -19,7 +19,6 @@
     "cookie-parser": "^1.4.6",
     "cors": "^2.8.5",
     "cross-env": "^7.0.3",
-    "crypto": "^1.0.1",
     "dotenv": "^16.4.1",
     "express": "^4.21.1",
     "express-asyncify": "^2.1.2",

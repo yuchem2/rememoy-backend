@@ -8,5 +8,5 @@
         "src/logs/*",
         "src/**/*.{spec,test}.ts"
     ],
-    "exec": "swc-node src/app.ts"
+    "exec": "node -r @swc-node/register src/app.ts"
 }

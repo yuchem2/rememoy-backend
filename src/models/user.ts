@@ -15,7 +15,7 @@ export class User extends TimeStamps {
     @prop({ required: true, unique: true })
     public nickname: string
 
-    @prop({ required: true })
+    @prop()
     public passwd: string
 
     public static async findByOauth(this: ReturnModelType<typeof User>, oauthProvider: string, oauthId: string): Promise<User> {
